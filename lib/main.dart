@@ -1,7 +1,10 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sutt_sem2_v1/providers.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   runApp(const MyApp());
@@ -21,6 +24,15 @@ class MyApp extends StatelessWidget {
         GoRoute(
           path: "/home",
           builder: (context, state) => const HomePage()
+          ),
+        GoRoute(
+          path: "/home/details",
+          builder: (context, state) {
+            final movieID = state.pathParameters['movieID'];
+            return DetailsScreen(
+              movieID: movieID,
+            );
+          }
           )
       ]
       );
@@ -29,6 +41,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<MovieListProvider>(
           create: (context) => MovieListProvider()
           ),
+        ChangeNotifierProvider(
+          create: (context) => MovieInformationProvider())
       ],
       child: MaterialApp.router(
         title: 'Flutter Demo',
@@ -122,6 +136,8 @@ class _HomePageState extends State<HomePage> {
                     child: IconButton(onPressed:() async {
                       await movies.returnList(myController.text);
                       await movies.MovieImageURLProvider();
+                      print(movies.returnList(myController.text));
+                      print(movies.MovieImageURLProvider());
                       }, 
                       icon: const Icon(Icons.search, color: Colors.black, ),
                       ),
@@ -175,6 +191,15 @@ class _HomePageState extends State<HomePage> {
                               icon: isFavorite
                               ? const Icon(Icons.favorite) : 
                               const Icon(Icons.favorite_border_outlined)
+                              ),
+                            TextButton(
+                              onPressed: ()=>context.go('/details/$movieTitle'), 
+                              child: const Row(
+                                children: <Widget>[
+                                  Text('Check the movie out'),
+                                  Icon(Icons.arrow_forward)
+                                ],
+                              )
                               )
                           ],
                         )
@@ -194,7 +219,8 @@ class _HomePageState extends State<HomePage> {
 }
 
 class DetailsScreen extends StatefulWidget {
-  const DetailsScreen({super.key});
+  final String? movieID;
+  const DetailsScreen({super.key, required this.movieID});
 
   @override
   State<DetailsScreen> createState() => _DetailsScreenState();
@@ -203,11 +229,61 @@ class DetailsScreen extends StatefulWidget {
 class _DetailsScreenState extends State<DetailsScreen> {
   @override
   Widget build(BuildContext context) {
+    final details = Provider.of<MovieInformationProvider>(context);
     return Scaffold(
+      backgroundColor: const Color(0xFF04073E),
       appBar: AppBar(
         title: const Image(image: AssetImage('assets/glasses.jpg')),
         centerTitle: true,
-        
+      ),
+      body: SingleChildScrollView(
+        child: Container(
+          padding: const EdgeInsets.all(10.0),
+          color: Colors.white,
+          child: FutureBuilder(
+            future: details.movieDetails(widget.movieID), 
+            builder: (context, snapshot){
+              if (snapshot.connectionState == ConnectionState.waiting){
+                return const Center(
+                  child: CircularProgressIndicator(),
+                  );
+              } else {
+                final movieDets = details.movieDets;
+                return Column(
+                  children: <Widget>[
+                    Text(movieDets['title']),
+                    Text(movieDets['year']),
+                    Text(movieDets['tagline']),
+                    RatingBar.builder(
+                      initialRating: (movieDets['imdb_rating'])/2,
+                      direction: Axis.horizontal,
+                      allowHalfRating: true,
+                      itemCount: 5,
+                      itemPadding: EdgeInsets.symmetric(horizontal: 4.0),
+                      itemBuilder: (context, _) => Icon(Icons.star,color: Colors.amber,),
+                      onRatingUpdate: (rating) {},
+                    ),
+                    Text(movieDets['description']),
+                    Text('Age Rating' + movieDets['rated']),
+                    RichText(
+                      text: TextSpan(
+                        text: 'Watch the trailer',
+                        recognizer: TapGestureRecognizer()..onTap = () async {
+                          var url = 'https://www.youtube.com/watch?v=' + movieDets['youtube_trailer_key'];
+                          if (await canLaunch(url)){
+                            await launch(url);
+                          } else {
+                            throw 'Error';
+                          }
+                        }
+                      )
+                    ),
+                  ],
+                );
+              }
+            }
+            ),
+        ),
       ),
     );
   }
