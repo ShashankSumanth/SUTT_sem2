@@ -16,7 +16,7 @@ class MovieListProvider extends ChangeNotifier {
         uri,
         headers: {
           'Type': "get-movies-by-title",
-          'X-RapidAPI-Key': "37a8028c8bmshf28fe296eed917bp1fa774jsn426861644cff",
+          'X-RapidAPI-Key': "7348186918msh1cda5a1d7db9120p1cf437jsnbf5f8be1f333",
           'X-RapidAPI-Host': "movies-tv-shows-database.p.rapidapi.com"
         }
       );
@@ -24,6 +24,7 @@ class MovieListProvider extends ChangeNotifier {
         final body = response.body;
         if (body.isNotEmpty) {
           _movieList = jsonDecode(body);
+          print(_movieList);
           notifyListeners();
         }
       }
@@ -44,7 +45,7 @@ class MovieListProvider extends ChangeNotifier {
         uri,
         headers: {
           'Type': "get-movies-images-by-imdb",
-          'X-RapidAPI-Key': "37a8028c8bmshf28fe296eed917bp1fa774jsn426861644cff",
+          'X-RapidAPI-Key': "7348186918msh1cda5a1d7db9120p1cf437jsnbf5f8be1f333",
           'X-RapidAPI-Host': "movies-tv-shows-database.p.rapidapi.com"
         }
       );
@@ -57,7 +58,35 @@ class MovieListProvider extends ChangeNotifier {
         }
       _movieInfo.add(InfoList['poster']);
     }
+    print(_movieInfo);
     notifyListeners();
+  }
+}
+
+class MovieInformationProvider extends ChangeNotifier{
+  
+  Map<String, dynamic> _movieDets = {};
+  Map<String, dynamic> get movieDets => _movieDets;
+  
+  Future<void> movieDetails(String? movieID) async {
+    const url = "https://movies-tv-shows-database.p.rapidapi.com/";
+    final uri = Uri.parse(url).replace(queryParameters: {'title': movieID});
+    final response =  await http.get(
+      uri,
+      headers: {
+        'Type': "get-movies-by-title",
+        'X-RapidAPI-Key': "7348186918msh1cda5a1d7db9120p1cf437jsnbf5f8be1f333",
+        'X-RapidAPI-Host': "movies-tv-shows-database.p.rapidapi.com"
+      }
+      );
+      if (response.statusCode == 200) {
+        final body = response.body;
+        if (body.isNotEmpty) {
+          _movieDets = jsonDecode(body);
+          print(_movieDets);
+          notifyListeners();
+        }
+      }
   }
 }
 
