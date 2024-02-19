@@ -6,17 +6,17 @@ class MovieListProvider extends ChangeNotifier {
   Map<String, dynamic> _movieList = {};
   Map<String, dynamic> get movieList => _movieList;
 
-  final List<dynamic> _movieInfo = [];
+  List<dynamic> _movieInfo = [];
   List<dynamic> get movieInfo => _movieInfo;
 
-  Future<void> returnList(String utitle) async {
+  Future<int> returnList(String utitle) async {
     const url = "https://movies-tv-shows-database.p.rapidapi.com/";
     final uri = Uri.parse(url).replace(queryParameters: {'title': utitle});
       final response = await http.get(
         uri,
         headers: {
           'Type': "get-movies-by-title",
-          'X-RapidAPI-Key': "7348186918msh1cda5a1d7db9120p1cf437jsnbf5f8be1f333",
+          'X-RapidAPI-Key': "f939b86969msh02e0ea20f27cabdp111b43jsn04fb778de5d2",
           'X-RapidAPI-Host': "movies-tv-shows-database.p.rapidapi.com"
         }
       );
@@ -24,18 +24,21 @@ class MovieListProvider extends ChangeNotifier {
         final body = response.body;
         if (body.isNotEmpty) {
           _movieList = jsonDecode(body);
+          print('1.');
           print(_movieList);
           notifyListeners();
         }
       }
+      return 1;
   }
 
   void toggleBookmark(int index){
-    _movieList[index]['favorite'] = !_movieList[index]['favorite'];
+    _movieList[index]['favorite'] = !(_movieList[index]['favorite'] ?? false);
     notifyListeners();
   }
 
-  Future<void> MovieImageURLProvider() async {
+  Future<int> MovieImageURLProvider() async {
+    _movieInfo = [];
     Map<String, dynamic> InfoList = {};
     for (var movie in _movieList['movie_results']){
       final imdbId = movie['imdb_id'];
@@ -45,7 +48,7 @@ class MovieListProvider extends ChangeNotifier {
         uri,
         headers: {
           'Type': "get-movies-images-by-imdb",
-          'X-RapidAPI-Key': "7348186918msh1cda5a1d7db9120p1cf437jsnbf5f8be1f333",
+          'X-RapidAPI-Key': "f939b86969msh02e0ea20f27cabdp111b43jsn04fb778de5d2",
           'X-RapidAPI-Host': "movies-tv-shows-database.p.rapidapi.com"
         }
       );
@@ -53,13 +56,14 @@ class MovieListProvider extends ChangeNotifier {
           final body = response.body;
           if (body.isNotEmpty) {
             InfoList = jsonDecode(body);
-            notifyListeners();
           }
         }
       _movieInfo.add(InfoList['poster']);
     }
+    print('2.');
     print(_movieInfo);
     notifyListeners();
+    return 1;
   }
 }
 
@@ -67,15 +71,18 @@ class MovieInformationProvider extends ChangeNotifier{
   
   Map<String, dynamic> _movieDets = {};
   Map<String, dynamic> get movieDets => _movieDets;
+
+  List<String> _fanArtURL = [];
+  List<String> get fanArtURL => _fanArtURL;
   
-  Future<void> movieDetails(String? movieID) async {
+  Future<int> movieDetails(String? movieID) async {
     const url = "https://movies-tv-shows-database.p.rapidapi.com/";
-    final uri = Uri.parse(url).replace(queryParameters: {'title': movieID});
+    final uri = Uri.parse(url).replace(queryParameters: {'movieid': movieID});
     final response =  await http.get(
       uri,
       headers: {
-        'Type': "get-movies-by-title",
-        'X-RapidAPI-Key': "7348186918msh1cda5a1d7db9120p1cf437jsnbf5f8be1f333",
+        'Type': "get-movie-details",
+        'X-RapidAPI-Key': "f939b86969msh02e0ea20f27cabdp111b43jsn04fb778de5d2",
         'X-RapidAPI-Host': "movies-tv-shows-database.p.rapidapi.com"
       }
       );
@@ -83,18 +90,35 @@ class MovieInformationProvider extends ChangeNotifier{
         final body = response.body;
         if (body.isNotEmpty) {
           _movieDets = jsonDecode(body);
-          print(_movieDets);
           notifyListeners();
+          return 1;
         }
       }
+      return 1;
+  }
+
+  Future<int> movieImageURLProvider(String? movieID) async {
+    _fanArtURL = [];
+    Map<String, dynamic> InfoList = {};
+    const url = "https://movies-tv-shows-database.p.rapidapi.com/";
+    final uri = Uri.parse(url).replace(queryParameters: {'movieid': movieID});
+    final response = await http.get(
+      uri,
+      headers: {
+        'Type': "get-movies-images-by-imdb",
+        'X-RapidAPI-Key': "f939b86969msh02e0ea20f27cabdp111b43jsn04fb778de5d2",
+        'X-RapidAPI-Host': "movies-tv-shows-database.p.rapidapi.com"
+      }
+      );
+        if (response.statusCode == 200) {
+          final body = response.body;
+          if (body.isNotEmpty) {
+            InfoList = jsonDecode(body);
+          }
+        }
+    _fanArtURL = (InfoList['fanart']);
+    print(_fanArtURL);
+    notifyListeners();
+    return 1;
   }
 }
-
-// class ToggleFavButtonProvider extends ChangeNotifier {
-//   bool _bookmarkState = false;
-//   bool get bookmarkState => _bookmarkState;
-//   void toggleBookmark(){
-//     _bookmarkState = !_bookmarkState;
-//     notifyListeners();
-//   }
-// }
