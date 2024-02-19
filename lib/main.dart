@@ -1,10 +1,10 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:sutt_sem2_v1/providers.dart';
+import 'package:sutt_sem2_v2/providers.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:carousel_slider/carousel_slider.dart';
+// import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   runApp(const MyApp());
@@ -26,7 +26,7 @@ class MyApp extends StatelessWidget {
           builder: (context, state) => const HomePage()
           ),
         GoRoute(
-          path: "/home/details",
+          path: "/home/details/:movieID",
           builder: (context, state) {
             final movieID = state.pathParameters['movieID'];
             return DetailsScreen(
@@ -136,7 +136,9 @@ class _HomePageState extends State<HomePage> {
                     child: IconButton(onPressed:() async {
                       await movies.returnList(myController.text);
                       await movies.MovieImageURLProvider();
+                      print('3.');
                       print(movies.returnList(myController.text));
+                      print('4.');
                       print(movies.MovieImageURLProvider());
                       }, 
                       icon: const Icon(Icons.search, color: Colors.black, ),
@@ -149,26 +151,18 @@ class _HomePageState extends State<HomePage> {
             SizedBox(
               height: MediaQuery.of(context).size.height,
               width: MediaQuery.of(context).size.width,
-              child: FutureBuilder(
-                future: movies.MovieImageURLProvider(),
-                builder: (context, snapshot){
-                if (snapshot.connectionState == ConnectionState.waiting){
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
-                }
-                else{
-                return GridView.builder(
+              child:  GridView.builder(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     crossAxisSpacing: 10,
-                    mainAxisExtent: 390,
+                    mainAxisExtent: 450,
                     ), 
                   itemCount: movies.movieList['movie_results']?.length ?? 0,
                   itemBuilder: (context, index){
                     List<dynamic> moviesResults = movies.movieList['movie_results'];
                     String movieTitle = moviesResults[index]['title'];
                     String movieImgURL = movies.movieInfo[index];
+                    String movieID = moviesResults[index]['imdb_id'];
                     final isFavorite = moviesResults[index]['favorite'] ?? false;
                     return Padding(
                       padding: const EdgeInsets.all(8.0),
@@ -192,25 +186,24 @@ class _HomePageState extends State<HomePage> {
                               ? const Icon(Icons.favorite) : 
                               const Icon(Icons.favorite_border_outlined)
                               ),
-                            TextButton(
-                              onPressed: ()=>context.go('/details/$movieTitle'), 
-                              child: const Row(
-                                children: <Widget>[
-                                  Text('Check the movie out'),
-                                  Icon(Icons.arrow_forward)
-                                ],
-                              )
-                              )
+                            Center(
+                              child: TextButton(
+                                onPressed: ()=>context.go('/home/details/$movieID'), 
+                                child: const Row(
+                                  children: <Widget>[
+                                    Text('See More'),
+                                    Icon(Icons.arrow_forward)
+                                  ],
+                                )
+                                ),
+                            )
                           ],
                         )
                         ),
                     );
                   },
-                  );
-                }
-                }
+                  )
               ),
-            )
           ],
         ),
       ),
@@ -220,69 +213,117 @@ class _HomePageState extends State<HomePage> {
 
 class DetailsScreen extends StatefulWidget {
   final String? movieID;
-  const DetailsScreen({super.key, required this.movieID});
-
+  const DetailsScreen({Key? key, required this.movieID});
   @override
   State<DetailsScreen> createState() => _DetailsScreenState();
 }
 
 class _DetailsScreenState extends State<DetailsScreen> {
+  late Map<String, dynamic> movieDets;
+  late List<String> fanartURL;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchMovieDetails();
+  }
+
+  Future<Map<String, dynamic>> fetchMovieDetails() async {
+    final details = Provider.of<MovieInformationProvider>(context, listen: false);
+    await details.movieImageURLProvider(widget.movieID);
+    await details.movieDetails(widget.movieID);
+    fanartURL = details.fanArtURL;
+    movieDets = details.movieDets;
+    return movieDets;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final details = Provider.of<MovieInformationProvider>(context);
     return Scaffold(
       backgroundColor: const Color(0xFF04073E),
       appBar: AppBar(
+        backgroundColor: const Color(0xFF04073E),
         title: const Image(image: AssetImage('assets/glasses.jpg')),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        child: Container(
-          padding: const EdgeInsets.all(10.0),
-          color: Colors.white,
-          child: FutureBuilder(
-            future: details.movieDetails(widget.movieID), 
-            builder: (context, snapshot){
-              if (snapshot.connectionState == ConnectionState.waiting){
-                return const Center(
-                  child: CircularProgressIndicator(),
-                  );
-              } else {
-                final movieDets = details.movieDets;
-                return Column(
-                  children: <Widget>[
-                    Text(movieDets['title']),
-                    Text(movieDets['year']),
-                    Text(movieDets['tagline']),
-                    RatingBar.builder(
-                      initialRating: (movieDets['imdb_rating'])/2,
-                      direction: Axis.horizontal,
-                      allowHalfRating: true,
-                      itemCount: 5,
-                      itemPadding: EdgeInsets.symmetric(horizontal: 4.0),
-                      itemBuilder: (context, _) => Icon(Icons.star,color: Colors.amber,),
-                      onRatingUpdate: (rating) {},
-                    ),
-                    Text(movieDets['description']),
-                    Text('Age Rating' + movieDets['rated']),
-                    RichText(
-                      text: TextSpan(
-                        text: 'Watch the trailer',
-                        recognizer: TapGestureRecognizer()..onTap = () async {
-                          var url = 'https://www.youtube.com/watch?v=' + movieDets['youtube_trailer_key'];
-                          if (await canLaunch(url)){
-                            await launch(url);
-                          } else {
-                            throw 'Error';
-                          }
-                        }
-                      )
-                    ),
-                  ],
-                );
+      body: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: SingleChildScrollView(
+          child: Container(
+            padding: const EdgeInsets.all(10.0),
+            color: Colors.white,
+            child: FutureBuilder(
+              future: fetchMovieDetails(),
+              builder: (BuildContext context, AsyncSnapshot<Map<String, dynamic>> snapshot) { 
+                 if (snapshot.connectionState == ConnectionState.waiting){
+                  return  const Center(
+                    child: CircularProgressIndicator(),
+                    );
+                 } else if (snapshot.hasData){
+                  print('here:');
+                  print(snapshot.data);
+                  Map<String, dynamic>? movieDets = snapshot.data;
+                  return Column(
+                      children: <Widget>[
+                        CarouselSlider.builder(
+                          itemCount: fanartURL.length, 
+                          itemBuilder: (BuildContext context, int index, int realIndex) {
+                            return Container(
+                              width: MediaQuery.of(context).size.width,
+                              margin: const EdgeInsets.symmetric(horizontal: 5.0),
+                              decoration: const BoxDecoration(color: Colors.white),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: <Widget>[
+                                  Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Image.network(fanartURL[index]),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }, 
+                          options: CarouselOptions(
+                            autoPlay: true,
+                            autoPlayInterval: const Duration(seconds: 2),
+                          )
+                          ),
+                        Text(movieDets?['title'] ?? 'No title available'),
+                        Text(movieDets?['year'] ?? 'No year available'),
+                        Text(movieDets?['tagline'] ?? 'No tagline available'),
+                        RatingBar.builder(
+                          initialRating: ((double.parse(movieDets?['imdb_rating'] ?? 0))/2),
+                          direction: Axis.horizontal,
+                          allowHalfRating: true,
+                          itemCount: 5,
+                          itemPadding: const EdgeInsets.symmetric(horizontal: 4.0),
+                          itemBuilder: (context, _) => const Icon(Icons.star,color: Colors.amber,),
+                          onRatingUpdate: (rating) {},
+                        ),
+                        Text(movieDets?['description']?? 'None'),
+                        Text('Age Rating: ' + movieDets?['rated']),
+                        // RichText(
+                        //   text: TextSpan(
+                        //     text: 'Watch the trailer',
+                        //     recognizer: TapGestureRecognizer()..onTap = () async {
+                        //       var url = 'https://www.youtube.com/watch?v=' + movieDets['youtube_trailer_key'];
+                        //       if (await canLaunch(url)){
+                        //         await launch(url);
+                        //       } else {
+                        //         throw 'Error';
+                        //       }
+                        //     }
+                        //   )
+                        // ),
+                      ],
+                    );
+                  }
+                  else{
+                    return const Row();
+                  }
               }
-            }
-            ),
+            )
+          ),
         ),
       ),
     );
