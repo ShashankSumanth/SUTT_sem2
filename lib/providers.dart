@@ -9,14 +9,46 @@ class MovieListProvider extends ChangeNotifier {
   List<dynamic> _movieInfo = [];
   List<dynamic> get movieInfo => _movieInfo;
 
+  bool _isLoading = false;
+  bool get isLoading => _isLoading;
+
   Future<int> returnList(String utitle) async {
+    _isLoading = true;
+    notifyListeners();
+    if (utitle == " "){
+      print('ffs');
+      const url = "https://movies-tv-shows-database.p.rapidapi.com/";
+      final uri = Uri.parse(url).replace(queryParameters: {'page': 1});
+        final response = await http.get(
+          uri,
+          headers: {
+            'Type': "get-nowplaying-movies",
+            'X-RapidAPI-Key': "863e572c37msh722cc44b8607d2fp1598e2jsn4b6ef70d664f",
+            'X-RapidAPI-Host': "movies-tv-shows-database.p.rapidapi.com"
+          }
+        );
+        if (response.statusCode == 200) {
+          final body = response.body;
+          if (body.isNotEmpty) {
+            _movieList = jsonDecode(body);
+            for (int counter = 0; counter<(_movieList['search_results']).toInt();counter++){
+              _movieList['movie_results'][counter]['favorite'] = false;
+            }
+            print('1.');
+            print(_movieList);
+            _isLoading = false;
+            notifyListeners();
+          }
+        }
+        return 1;
+    }
     const url = "https://movies-tv-shows-database.p.rapidapi.com/";
     final uri = Uri.parse(url).replace(queryParameters: {'title': utitle});
       final response = await http.get(
         uri,
         headers: {
           'Type': "get-movies-by-title",
-          'X-RapidAPI-Key': "f939b86969msh02e0ea20f27cabdp111b43jsn04fb778de5d2",
+          'X-RapidAPI-Key': "863e572c37msh722cc44b8607d2fp1598e2jsn4b6ef70d664f",
           'X-RapidAPI-Host': "movies-tv-shows-database.p.rapidapi.com"
         }
       );
@@ -24,8 +56,12 @@ class MovieListProvider extends ChangeNotifier {
         final body = response.body;
         if (body.isNotEmpty) {
           _movieList = jsonDecode(body);
+          for (int counter = 0; counter<(_movieList['search_results']).toInt();counter++){
+            _movieList['movie_results'][counter]['favorite'] = false;
+          }
           print('1.');
           print(_movieList);
+          _isLoading = false;
           notifyListeners();
         }
       }
@@ -33,7 +69,7 @@ class MovieListProvider extends ChangeNotifier {
   }
 
   void toggleBookmark(int index){
-    _movieList[index]['favorite'] = !(_movieList[index]['favorite'] ?? false);
+    _movieList['movie_results'][index]['favorite'] = !(_movieList['movie_results'][index]['favorite']);
     notifyListeners();
   }
 
@@ -48,7 +84,7 @@ class MovieListProvider extends ChangeNotifier {
         uri,
         headers: {
           'Type': "get-movies-images-by-imdb",
-          'X-RapidAPI-Key': "f939b86969msh02e0ea20f27cabdp111b43jsn04fb778de5d2",
+          'X-RapidAPI-Key': "863e572c37msh722cc44b8607d2fp1598e2jsn4b6ef70d664f",
           'X-RapidAPI-Host': "movies-tv-shows-database.p.rapidapi.com"
         }
       );
@@ -82,7 +118,7 @@ class MovieInformationProvider extends ChangeNotifier{
       uri,
       headers: {
         'Type': "get-movie-details",
-        'X-RapidAPI-Key': "f939b86969msh02e0ea20f27cabdp111b43jsn04fb778de5d2",
+        'X-RapidAPI-Key': "863e572c37msh722cc44b8607d2fp1598e2jsn4b6ef70d664f",
         'X-RapidAPI-Host': "movies-tv-shows-database.p.rapidapi.com"
       }
       );
@@ -90,6 +126,7 @@ class MovieInformationProvider extends ChangeNotifier{
         final body = response.body;
         if (body.isNotEmpty) {
           _movieDets = jsonDecode(body);
+          print(_movieDets);
           notifyListeners();
           return 1;
         }
@@ -106,7 +143,7 @@ class MovieInformationProvider extends ChangeNotifier{
       uri,
       headers: {
         'Type': "get-movies-images-by-imdb",
-        'X-RapidAPI-Key': "f939b86969msh02e0ea20f27cabdp111b43jsn04fb778de5d2",
+        'X-RapidAPI-Key': "863e572c37msh722cc44b8607d2fp1598e2jsn4b6ef70d664f",
         'X-RapidAPI-Host': "movies-tv-shows-database.p.rapidapi.com"
       }
       );
@@ -116,7 +153,7 @@ class MovieInformationProvider extends ChangeNotifier{
             InfoList = jsonDecode(body);
           }
         }
-    _fanArtURL = (InfoList['fanart']);
+    _fanArtURL = (InfoList['fanart']).split(',');
     print(_fanArtURL);
     notifyListeners();
     return 1;
