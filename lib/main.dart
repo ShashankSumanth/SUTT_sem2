@@ -4,7 +4,7 @@ import 'package:sutt_sem2_v2/providers.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-// import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   runApp(const MyApp());
@@ -97,12 +97,28 @@ class _SplashScreenState extends State<SplashScreen> {
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
-
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
+  late String utitle;
+  @override
+  void initState() {
+    super.initState();
+    _fetchMovieData();
+  }
+
+  Future<void> _fetchMovieData() async {
+    final movies = Provider.of<MovieListProvider>(context);
+    await movies.returnList(" ");
+    print('-1');
+    print(movies.movieList);
+    await movies.MovieImageURLProvider();
+    print('-2');
+    print(movies.movieInfo);
+  }
+
   @override
   Widget build(BuildContext context) {
     final movies = Provider.of<MovieListProvider>(context);
@@ -148,6 +164,7 @@ class _HomePageState extends State<HomePage> {
                 controller: myController,
               ),
             ),
+            if (movies.isLoading == false)
             SizedBox(
               height: MediaQuery.of(context).size.height,
               width: MediaQuery.of(context).size.width,
@@ -163,7 +180,7 @@ class _HomePageState extends State<HomePage> {
                     String movieTitle = moviesResults[index]['title'];
                     String movieImgURL = movies.movieInfo[index];
                     String movieID = moviesResults[index]['imdb_id'];
-                    final isFavorite = moviesResults[index]['favorite'] ?? false;
+                    final isFavorite = moviesResults[index]['favorite'];
                     return Padding(
                       padding: const EdgeInsets.all(8.0),
                       child: Container(
@@ -204,6 +221,8 @@ class _HomePageState extends State<HomePage> {
                   },
                   )
               ),
+              if (movies.isLoading == true)
+              Center(child: CircularProgressIndicator())
           ],
         ),
       ),
@@ -245,13 +264,23 @@ class _DetailsScreenState extends State<DetailsScreen> {
         backgroundColor: const Color(0xFF04073E),
         title: const Image(image: AssetImage('assets/glasses.jpg')),
         centerTitle: true,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: ()=>context.go('/home'),
+          ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
         child: SingleChildScrollView(
           child: Container(
             padding: const EdgeInsets.all(10.0),
-            color: Colors.white,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: Colors.black
+              )
+            ),
             child: FutureBuilder(
               future: fetchMovieDetails(),
               builder: (BuildContext context, AsyncSnapshot<Map<String, dynamic>> snapshot) { 
@@ -285,7 +314,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                           }, 
                           options: CarouselOptions(
                             autoPlay: true,
-                            autoPlayInterval: const Duration(seconds: 2),
+                            autoPlayInterval: const Duration(seconds: 4),
                           )
                           ),
                         Text(movieDets?['title'] ?? 'No title available'),
@@ -302,19 +331,16 @@ class _DetailsScreenState extends State<DetailsScreen> {
                         ),
                         Text(movieDets?['description']?? 'None'),
                         Text('Age Rating: ' + movieDets?['rated']),
-                        // RichText(
-                        //   text: TextSpan(
-                        //     text: 'Watch the trailer',
-                        //     recognizer: TapGestureRecognizer()..onTap = () async {
-                        //       var url = 'https://www.youtube.com/watch?v=' + movieDets['youtube_trailer_key'];
-                        //       if (await canLaunch(url)){
-                        //         await launch(url);
-                        //       } else {
-                        //         throw 'Error';
-                        //       }
-                        //     }
-                        //   )
-                        // ),
+                        TextButton(
+                          onPressed:  () async {
+                            Uri url = ('https://www.youtube.com/watch?v' + (movieDets?['youtube_trailer_key'])) as Uri;
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url);
+                            } else {
+                              throw 'Could not launch $url';
+                            }
+                          }, 
+                          child: Text('Watch the trailer'))
                       ],
                     );
                   }
