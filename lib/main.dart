@@ -102,33 +102,32 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late String utitle;
+  String utitle = " ";
+  late TextEditingController myController;
+  late Future<void> _fetchMovieDataFuture;
+
   @override
   void initState() {
     super.initState();
-    _fetchMovieData();
+    myController = TextEditingController();
+    _fetchMovieDataFuture = _fetchMovieData(utitle);
   }
 
-  Future<void> _fetchMovieData() async {
-    final movies = Provider.of<MovieListProvider>(context);
-    await movies.returnList(" ");
-    print('-1');
-    print(movies.movieList);
+  Future<void> _fetchMovieData(String utitle) async {
+    final movies = Provider.of<MovieListProvider>(context, listen: false);
+    await movies.returnList(utitle);
     await movies.MovieImageURLProvider();
-    print('-2');
-    print(movies.movieInfo);
   }
 
   @override
   Widget build(BuildContext context) {
     final movies = Provider.of<MovieListProvider>(context);
-    final myController = TextEditingController();
     return Scaffold(
       backgroundColor: const Color(0xFF04073E),
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
         backgroundColor: const Color(0xFF04073E),
-        title: const Image(image: AssetImage('assets/glasses.jpg'),),
+        title: const Image(image: AssetImage('assets/glasses.jpg')),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -136,7 +135,7 @@ class _HomePageState extends State<HomePage> {
           children: <Widget>[
             const Padding(
               padding: EdgeInsets.all(8.0),
-              child: Text("Movie Guide", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),),
+              child: Text("Movie Guide", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
             ),
             Padding(
               padding: const EdgeInsets.all(15.0),
@@ -149,86 +148,94 @@ class _HomePageState extends State<HomePage> {
                     decoration: const BoxDecoration(
                       color: Color(0xFFFFBE28),
                       ),
-                    child: IconButton(onPressed:() async {
-                      await movies.returnList(myController.text);
-                      await movies.MovieImageURLProvider();
-                      print('3.');
-                      print(movies.returnList(myController.text));
-                      print('4.');
-                      print(movies.MovieImageURLProvider());
+                    child: IconButton(
+                      onPressed:() async {
+                        setState(() {
+                          utitle = myController.text;
+                          _fetchMovieDataFuture = _fetchMovieData(utitle);
+                        });
                       }, 
-                      icon: const Icon(Icons.search, color: Colors.black, ),
+                      icon: const Icon(Icons.search, color: Colors.black),
                       ),
                   )
                 ),
                 controller: myController,
               ),
             ),
-            if (movies.isLoading == false)
-            SizedBox(
-              height: MediaQuery.of(context).size.height,
-              width: MediaQuery.of(context).size.width,
-              child:  GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisExtent: 450,
-                    ), 
-                  itemCount: movies.movieList['movie_results']?.length ?? 0,
-                  itemBuilder: (context, index){
-                    List<dynamic> moviesResults = movies.movieList['movie_results'];
-                    String movieTitle = moviesResults[index]['title'];
-                    String movieImgURL = movies.movieInfo[index];
-                    String movieID = moviesResults[index]['imdb_id'];
-                    final isFavorite = moviesResults[index]['favorite'];
-                    return Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(
-                            color: Colors.black,
-                            width: 2
-                          )
-                        ),
-                        child: Column(
-                          children: <Widget>[
-                            Image.network(movieImgURL),
-                            Text(movieTitle),
-                            IconButton(
-                              onPressed: (){
-                                movies.toggleBookmark(index);
-                              },
-                              icon: isFavorite
-                              ? const Icon(Icons.favorite) : 
-                              const Icon(Icons.favorite_border_outlined)
-                              ),
-                            Center(
-                              child: TextButton(
-                                onPressed: ()=>context.go('/home/details/$movieID'), 
-                                child: const Row(
-                                  children: <Widget>[
-                                    Text('See More'),
-                                    Icon(Icons.arrow_forward)
-                                  ],
+            FutureBuilder<void>(
+              future: _fetchMovieDataFuture, 
+              builder: (context, snapshot){
+                if (snapshot.connectionState == ConnectionState.waiting){
+                  return const CircularProgressIndicator();
+                } else if (snapshot.hasError){
+                  return Text('Error: ${snapshot.error}');
+                } else {
+                  return SizedBox(
+                    height: MediaQuery.of(context).size.height,
+                    width: MediaQuery.of(context).size.width,
+                    child:  GridView.builder(
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 10,
+                        mainAxisExtent: 450,
+                        ), 
+                      itemCount: movies.movieList['movie_results']?.length ?? 0,
+                      itemBuilder: (context, index){
+                        List<dynamic> moviesResults = movies.movieList['movie_results'];
+                        String movieTitle = moviesResults[index]['title'];
+                        String movieImgURL = movies.movieInfo[index];
+                        String movieID = moviesResults[index]['imdb_id'];
+                        final isFavorite = moviesResults[index]['favorite'];
+                        return Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(
+                                color: Colors.black,
+                                width: 2
+                              )
+                            ),
+                            child: Column(
+                              children: <Widget>[
+                                Image.network(movieImgURL),
+                                Text(movieTitle),
+                                IconButton(
+                                  onPressed: (){
+                                    movies.toggleBookmark(index);
+                                  },
+                                  icon: isFavorite
+                                  ? const Icon(Icons.favorite) : 
+                                  const Icon(Icons.favorite_border_outlined)
+                                  ),
+                                Center(
+                                  child: TextButton(
+                                    onPressed: ()=>Navigator.of(context).pushNamed('/home/details/$movieID'), 
+                                    child: const Row(
+                                      children: <Widget>[
+                                        Text('See More'),
+                                        Icon(Icons.arrow_forward)
+                                      ],
+                                    )
+                                    ),
                                 )
-                                ),
+                              ],
                             )
-                          ],
-                        )
-                        ),
-                    );
-                  },
-                  )
-              ),
-              if (movies.isLoading == true)
-              Center(child: CircularProgressIndicator())
+                            ),
+                        );
+                      },
+                      )
+                  );
+                }
+              }
+            ),
           ],
         ),
       ),
     );
   }
 }
+
 
 class DetailsScreen extends StatefulWidget {
   final String? movieID;
@@ -265,7 +272,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
         title: const Image(image: AssetImage('assets/glasses.jpg')),
         centerTitle: true,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: ()=>context.go('/home'),
           ),
       ),
@@ -289,8 +296,6 @@ class _DetailsScreenState extends State<DetailsScreen> {
                     child: CircularProgressIndicator(),
                     );
                  } else if (snapshot.hasData){
-                  print('here:');
-                  print(snapshot.data);
                   Map<String, dynamic>? movieDets = snapshot.data;
                   return Column(
                       children: <Widget>[
@@ -340,7 +345,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                               throw 'Could not launch $url';
                             }
                           }, 
-                          child: Text('Watch the trailer'))
+                          child: const Text('Watch the trailer'))
                       ],
                     );
                   }
