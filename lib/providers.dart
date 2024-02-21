@@ -13,12 +13,9 @@ class MovieListProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
 
   Future<int> returnList(String utitle) async {
-    _isLoading = true;
-    notifyListeners();
     if (utitle == " "){
-      print('ffs');
       const url = "https://movies-tv-shows-database.p.rapidapi.com/";
-      final uri = Uri.parse(url).replace(queryParameters: {'page': 1});
+      final uri = Uri.parse(url).replace(queryParameters: {'page': '1'});
         final response = await http.get(
           uri,
           headers: {
@@ -31,11 +28,9 @@ class MovieListProvider extends ChangeNotifier {
           final body = response.body;
           if (body.isNotEmpty) {
             _movieList = jsonDecode(body);
-            for (int counter = 0; counter<(_movieList['search_results']).toInt();counter++){
+            for (int counter = 0; counter<_movieList['results'];counter++){
               _movieList['movie_results'][counter]['favorite'] = false;
             }
-            print('1.');
-            print(_movieList);
             _isLoading = false;
             notifyListeners();
           }
@@ -59,8 +54,6 @@ class MovieListProvider extends ChangeNotifier {
           for (int counter = 0; counter<(_movieList['search_results']).toInt();counter++){
             _movieList['movie_results'][counter]['favorite'] = false;
           }
-          print('1.');
-          print(_movieList);
           _isLoading = false;
           notifyListeners();
         }
@@ -96,8 +89,6 @@ class MovieListProvider extends ChangeNotifier {
         }
       _movieInfo.add(InfoList['poster']);
     }
-    print('2.');
-    print(_movieInfo);
     notifyListeners();
     return 1;
   }
@@ -126,7 +117,6 @@ class MovieInformationProvider extends ChangeNotifier{
         final body = response.body;
         if (body.isNotEmpty) {
           _movieDets = jsonDecode(body);
-          print(_movieDets);
           notifyListeners();
           return 1;
         }
@@ -154,7 +144,6 @@ class MovieInformationProvider extends ChangeNotifier{
           }
         }
     _fanArtURL = (InfoList['fanart']).split(',');
-    print(_fanArtURL);
     notifyListeners();
     return 1;
   }
