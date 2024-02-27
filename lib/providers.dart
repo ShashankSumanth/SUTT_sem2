@@ -20,7 +20,7 @@ class MovieListProvider extends ChangeNotifier {
           uri,
           headers: {
             'Type': "get-nowplaying-movies",
-            'X-RapidAPI-Key': "863e572c37msh722cc44b8607d2fp1598e2jsn4b6ef70d664f",
+            'X-RapidAPI-Key': "468ea9dcc0msh13ec1d1d0a74434p180135jsn06e756bcb814",
             'X-RapidAPI-Host': "movies-tv-shows-database.p.rapidapi.com"
           }
         );
@@ -43,7 +43,7 @@ class MovieListProvider extends ChangeNotifier {
         uri,
         headers: {
           'Type': "get-movies-by-title",
-          'X-RapidAPI-Key': "863e572c37msh722cc44b8607d2fp1598e2jsn4b6ef70d664f",
+          'X-RapidAPI-Key': "468ea9dcc0msh13ec1d1d0a74434p180135jsn06e756bcb814",
           'X-RapidAPI-Host': "movies-tv-shows-database.p.rapidapi.com"
         }
       );
@@ -77,7 +77,7 @@ class MovieListProvider extends ChangeNotifier {
         uri,
         headers: {
           'Type': "get-movies-images-by-imdb",
-          'X-RapidAPI-Key': "863e572c37msh722cc44b8607d2fp1598e2jsn4b6ef70d664f",
+          'X-RapidAPI-Key': "468ea9dcc0msh13ec1d1d0a74434p180135jsn06e756bcb814",
           'X-RapidAPI-Host': "movies-tv-shows-database.p.rapidapi.com"
         }
       );
@@ -87,8 +87,13 @@ class MovieListProvider extends ChangeNotifier {
             InfoList = jsonDecode(body);
           }
         }
-      _movieInfo.add(InfoList['poster']);
+      if (InfoList['poster'] != ''){
+        _movieInfo.add(InfoList['poster']);
+      } else{
+        _movieInfo.add('https://media.istockphoto.com/id/1409329028/vector/no-picture-available-placeholder-thumbnail-icon-illustration-design.jpg?s=612x612&w=0&k=20&c=_zOuJu755g2eEUioiOUdz_mHKJQJn-tDgIAhQzyeKUQ=');
+      }
     }
+    print(_movieInfo);
     notifyListeners();
     return 1;
   }
@@ -109,7 +114,7 @@ class MovieInformationProvider extends ChangeNotifier{
       uri,
       headers: {
         'Type': "get-movie-details",
-        'X-RapidAPI-Key': "863e572c37msh722cc44b8607d2fp1598e2jsn4b6ef70d664f",
+        'X-RapidAPI-Key': "468ea9dcc0msh13ec1d1d0a74434p180135jsn06e756bcb814",
         'X-RapidAPI-Host': "movies-tv-shows-database.p.rapidapi.com"
       }
       );
@@ -133,7 +138,7 @@ class MovieInformationProvider extends ChangeNotifier{
       uri,
       headers: {
         'Type': "get-movies-images-by-imdb",
-        'X-RapidAPI-Key': "863e572c37msh722cc44b8607d2fp1598e2jsn4b6ef70d664f",
+        'X-RapidAPI-Key': "468ea9dcc0msh13ec1d1d0a74434p180135jsn06e756bcb814",
         'X-RapidAPI-Host': "movies-tv-shows-database.p.rapidapi.com"
       }
       );
