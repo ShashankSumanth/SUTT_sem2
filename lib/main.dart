@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 void main() {
   runApp(const MyApp());
@@ -162,7 +163,7 @@ class _HomePageState extends State<HomePage> {
                 controller: myController,
               ),
             ),
-            FutureBuilder<void>(
+            FutureBuilder(
               future: _fetchMovieDataFuture, 
               builder: (context, snapshot){
                 if (snapshot.connectionState == ConnectionState.waiting){
@@ -210,7 +211,7 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                 Center(
                                   child: TextButton(
-                                    onPressed: ()=>Navigator.of(context).pushNamed('/home/details/$movieID'), 
+                                    onPressed: ()=>context.go('/home/details/$movieID'), 
                                     child: const Row(
                                       children: <Widget>[
                                         Text('See More'),
