@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:sutt_sem2_v3/riverpods.dart';
+import 'package:sutt_task_final/riverpods.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -23,11 +26,18 @@ class MyApp extends StatelessWidget {
           builder: (context, state) => const SplashScreen()
           ),
         GoRoute(
-          path: "/home",
-          builder: (context, state) => const HomePage()
+          path: "/signin",
+          builder: (context, state) => const GoogleSignIn()
           ),
         GoRoute(
-          path: "/home/details/:movieID",
+          path: "/signin/home/:username",
+          builder: (context, state) {
+            final username = state.pathParameters['username'];
+            return HomePage(username: username ?? "");
+          }
+          ),
+        GoRoute(
+          path: "/signin/home/details/:movieID",
           builder: (context, state) {
             final movieID = state.pathParameters['movieID'];
             return DetailsScreen(
@@ -57,7 +67,7 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() { 
     super.initState(); 
     Future.delayed(const Duration(seconds: 3), (){
-      GoRouter.of(context).go('/home');
+      GoRouter.of(context).go('/signin');
     } 
     );
   }
@@ -87,18 +97,80 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 }
 
+
+class GoogleSignIn extends ConsumerStatefulWidget{
+  const GoogleSignIn({super.key});
+  @override
+  ConsumerState<GoogleSignIn> createState() => _GoogleSignIn();
+}
+
+class _GoogleSignIn extends ConsumerState<GoogleSignIn> {
+
+  @override
+  Widget build(BuildContext){
+    final userInformation = ref.watch(userProvider);
+    print (userInformation);
+    return Scaffold(
+      backgroundColor: const Color(0xFF04073E),
+      resizeToAvoidBottomInset: false,
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF04073E),
+        title: const Image(image: AssetImage('assets/glasses.jpg')),
+        centerTitle: true,
+      ),
+      body: Column(
+        children: <Widget>[
+          TextButton(
+            onPressed: () async {
+              return userInformation.when(
+                data: (userInformation) => showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: Text("Welcome" + userInformation),
+                    content: TextButton(
+                      onPressed: () => (context).go('/signin/home/$userInformation'),
+                      child: Text('Continue')
+                    ),
+                  )
+                  ),
+                loading: () => const Center(
+                  child: CircularProgressIndicator(),
+                ),
+                error: (err, stack) => Text('Error: $err')
+                );
+            }, 
+            child: const Text('Sign in with Google'))
+        ]
+      )
+    );
+  }
+}
+
+
 class HomePage extends ConsumerStatefulWidget {
-  const HomePage({super.key});
+  final String username;
+  HomePage({super.key, required this.username});
   @override
   ConsumerState<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
 
+  late String utitle;
+  late TextEditingController myController;
+
+  @override
+  void initState() {
+    super.initState();
+    utitle = "";
+    myController = TextEditingController();
+  }
+
   @override
   Widget build(BuildContext context) {
-    String utitle = "";
-    final movieList = ref.watch(movieListProvider(utitle));
+    String? username = widget.username;
+    var movieList = ref.watch(movieListProvider(utitle));
+    
     final myController = TextEditingController();
     return Scaffold(
       backgroundColor: const Color(0xFF04073E),
@@ -111,9 +183,9 @@ class _HomePageState extends ConsumerState<HomePage> {
       body: SingleChildScrollView(
         child: Column(
           children: <Widget>[
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(8.0),
-              child: Text("Movie Guide", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+              child: Text("Welcome, $username", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
             ),
             Padding(
               padding: const EdgeInsets.all(15.0),
@@ -128,7 +200,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ),
                     child: IconButton(
                       onPressed:() async {
-                        utitle = myController.text;
+                        setState(() {
+                          utitle = myController.text;
+                        });
                         await ref.read(movieListProvider(myController.text)).maybeWhen(
                           data: (_) => ref.refresh(movieListProvider(utitle)),
                           orElse: () {}
@@ -174,17 +248,19 @@ class _HomePageState extends ConsumerState<HomePage> {
                           children: <Widget>[
                             Image.network(movieImgURL),
                             Text(movieTitle),
-                            // IconButton(
-                            //   onPressed: (){
-                            //         ref.read(moviesResults[index]['favorite']).state = !moviesResults[index]['favorite'];
-                            //       },
-                            //       icon: ref.watch(moviesResults[index]['favorite'])
-                            //       ? const Icon(Icons.favorite) : 
-                            //       const Icon(Icons.favorite_border_outlined)
-                            //       ),
+                            IconButton(
+                              onPressed: (){
+                                var isFav = ref.watch(favoriteProvider);
+                                ref.read(favoriteProvider.notifier).state = !ref.read(favoriteProvider.notifier).state;
+                                moviesResults[index]['favorite'] = isFav;
+                              },
+                              icon: moviesResults[index]['favorite']
+                                  ? const Icon(Icons.favorite) : 
+                                  const Icon(Icons.favorite_border_outlined)
+                            ),
                             Center(
                               child: TextButton(
-                                onPressed: ()=>context.go('/home/details/$movieID'), 
+                                onPressed: ()=>context.go('/signin/home/details/$movieID'), 
                                 child: const Row(
                                   children: <Widget>[
                                     Text('See More'),
@@ -209,6 +285,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 }
 
+
 class DetailsScreen extends ConsumerStatefulWidget {
   final String movieID;
   const DetailsScreen({Key? key, required this.movieID});
@@ -229,7 +306,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: ()=>context.go('/home'),
+          onPressed: ()=>context.go('/signin/home:'),
           ),
       ),
       body: Padding(
