@@ -118,29 +118,52 @@ class _GoogleSignIn extends ConsumerState<GoogleSignIn> {
         title: const Image(image: AssetImage('assets/glasses.jpg')),
         centerTitle: true,
       ),
-      body: Column(
-        children: <Widget>[
-          TextButton(
-            onPressed: () async {
-              return userInformation.when(
-                data: (userInformation) => showDialog(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: Text("Welcome" + userInformation),
-                    content: TextButton(
-                      onPressed: () => (context).go('/signin/home/$userInformation'),
-                      child: Text('Continue')
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Icon(
+                Icons.account_circle,
+                color: Colors.white,
+                size: 100
+              ),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.white,
+                fixedSize: const Size(200,50)
+              ),
+              onPressed: () async {
+                return userInformation.when(
+                  data: (userInformation) => showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: Text("Welcome " + userInformation),
+                      content: TextButton(
+                        onPressed: () => (context).go('/signin/home/$userInformation'),
+                        child: const Text('Continue')
+                      ),
+                    )
                     ),
-                  )
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(),
                   ),
-                loading: () => const Center(
-                  child: CircularProgressIndicator(),
-                ),
-                error: (err, stack) => Text('Error: $err')
-                );
-            }, 
-            child: const Text('Sign in with Google'))
-        ]
+                  error: (err, stack) => Text('Error: $err')
+                  );
+              }, 
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: <Widget>[
+                  Image(image: AssetImage('assets/GoogleImage.png'),
+                  height: 30, 
+                  ),
+                  Text('Sign in with Google'),
+                ],
+              ))
+          ]
+        ),
       )
     );
   }
@@ -184,8 +207,8 @@ class _HomePageState extends ConsumerState<HomePage> {
         child: Column(
           children: <Widget>[
             Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Text("Welcome, $username", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+              padding: const EdgeInsets.all(8.0),
+              child: Text("Welcome $username", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
             ),
             Padding(
               padding: const EdgeInsets.all(15.0),
@@ -306,7 +329,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: ()=>context.go('/signin/home:'),
+          onPressed: ()=>context.go('/signin/home/ '),
           ),
       ),
       body: Padding(
@@ -330,6 +353,9 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                         CarouselSlider.builder(
                           itemCount: movieDetails['fanart'].length, 
                           itemBuilder: (BuildContext context, int index, int realIndex) {
+                            if (movieDetails['fanart'] == ""){
+                              movieDetails['fanart'] = "https://media.istockphoto.com/id/1409329028/vector/no-picture-available-placeholder-thumbnail-icon-illustration-design.jpg?s=612x612&w=0&k=20&c=_zOuJu755g2eEUioiOUdz_mHKJQJn-tDgIAhQzyeKUQ=";
+                            }
                             return Container(
                               width: MediaQuery.of(context).size.width,
                               margin: const EdgeInsets.symmetric(horizontal: 5.0),
@@ -350,9 +376,16 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                             autoPlayInterval: const Duration(seconds: 4),
                           )
                           ),
-                        Text(movieDetails['title'] ?? 'No title available'),
-                        Text(movieDetails['year'] ?? 'No year available'),
+                        Text(movieDetails['title'] ?? 'No title available', style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),),
+                        Text(movieDetails['year'] ?? 'No year available', style: const TextStyle(
+                          fontWeight: FontWeight.bold
+                        ),),
+                        const SizedBox(height: 10,),
                         Text(movieDetails['tagline'] ?? 'No tagline available'),
+                        const SizedBox(height: 10,),
                         RatingBar.builder(
                           initialRating: ((double.parse(movieDetails['imdb_rating'] ?? 0))/2),
                           direction: Axis.horizontal,
@@ -362,12 +395,30 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                           itemBuilder: (context, _) => const Icon(Icons.star,color: Colors.amber,),
                           onRatingUpdate: (rating) {},
                         ),
-                        Text(movieDetails['description']?? 'None'),
-                        Text('Age Rating: ' + movieDetails['rated']),
+                        const SizedBox(height: 10,),
+                        ExpansionTile(
+                          title: const Text("Description", style: TextStyle(
+                            fontWeight: FontWeight.w500
+                          ),
+                          ),
+                          children: <Widget>[
+                            Text(movieDetails['description']?? 'None')
+                          ],
+                        ),
+                        const SizedBox(height: 10,),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            const Text('Age Rating: ', style: TextStyle(fontWeight: FontWeight.w500),),
+                            Text(movieDetails['rated']),
+                          ],
+                        ),
                         TextButton(
                           onPressed:  () async {
-                            Uri url = ('https://www.youtube.com/watch?v' + (movieDetails['youtube_trailer_key'])) as Uri;
+                            String youtubeTrailerKey = movieDetails['youtube_trailer_key'];
+                            Uri url = Uri.parse("https://www.youtube.com/watch?v=$youtubeTrailerKey");
                             if (await canLaunchUrl(url)) {
+                              print('here');
                               await launchUrl(url);
                             } else {
                               throw 'Could not launch $url';
